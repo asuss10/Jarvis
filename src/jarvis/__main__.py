@@ -10,6 +10,7 @@ from jarvis.core.ollama_provider import OllamaProvider
 from jarvis.core.prompts import build_system_prompt
 from jarvis.logging_config import setup_logging
 from jarvis.memory.database import connect
+from jarvis.memory.history import HistoryStore
 from jarvis.memory.notes import NotesStore
 from jarvis.tools.notes_tools import build_note_tools
 from jarvis.tools.registry import ToolRegistry
@@ -34,9 +35,16 @@ def main() -> None:
     provider = OllamaProvider(
         model=settings.model, host=settings.ollama_host, num_ctx=settings.num_ctx
     )
-    agent = Agent(provider, registry, build_system_prompt())
+    agent = Agent(
+        provider,
+        registry,
+        build_system_prompt(),
+        history=HistoryStore(conn),
+        # Roughly half the context window; the rest is for system prompt, tools and reply.
+        max_history_chars=settings.num_ctx * 2,
+    )
 
-    print(f"JARVIS v0.1 ({settings.model}). Type 'exit' to quit.\n")
+    print(f"JARVIS v0.1 ({settings.model}). Commands: /clear (forget chat), exit.\n")
     try:
         while True:
             try:
@@ -47,6 +55,10 @@ def main() -> None:
                 continue
             if user_text.lower() in {"exit", "quit"}:
                 break
+            if user_text.lower() == "/clear":
+                agent.reset()
+                print("jarvis> Conversation cleared. Your notes are untouched.\n")
+                continue
             try:
                 print(f"jarvis> {agent.respond(user_text)}\n")
             except LLMError as exc:

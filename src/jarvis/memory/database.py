@@ -9,6 +9,15 @@ CREATE TABLE IF NOT EXISTS notes (
     text       TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS messages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    role       TEXT NOT NULL,
+    content    TEXT NOT NULL,
+    tool_calls TEXT,
+    tool_name  TEXT,
+    created_at TEXT NOT NULL
+);
 """
 
 
