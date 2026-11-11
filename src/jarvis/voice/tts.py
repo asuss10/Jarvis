@@ -90,3 +90,18 @@ class Speaker:
     def unload(self) -> None:
         """Release the voice model from memory."""
         self._voice = None
+
+
+def ensure_voice(voice_id: str, voices_dir: Path) -> Path:
+    """Return the path to a voice model, downloading it first if it is missing."""
+    model_path = voices_dir / f"{voice_id}.onnx"
+    if not model_path.exists():
+        from piper.download_voices import download_voice
+
+        logger.info("Downloading voice %s", voice_id)
+        voices_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            download_voice(voice_id, voices_dir)
+        except Exception as exc:
+            raise TTSError(f"Could not download voice '{voice_id}': {exc}") from exc
+    return model_path

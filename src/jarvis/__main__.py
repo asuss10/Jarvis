@@ -14,6 +14,7 @@ from jarvis.memory.history import HistoryStore
 from jarvis.memory.notes import NotesStore
 from jarvis.tools.notes_tools import build_note_tools
 from jarvis.tools.registry import ToolRegistry
+from jarvis.voice.tts import Speaker, TTSError, ensure_voice
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,10 @@ def main() -> None:
         registry.register(tool)
 
     provider = OllamaProvider(
-        model=settings.model, host=settings.ollama_host, num_ctx=settings.num_ctx
+        model=settings.model,
+        host=settings.ollama_host,
+        num_ctx=settings.num_ctx,
+        keep_alive=settings.keep_alive,
     )
     agent = Agent(
         provider,
@@ -44,7 +48,12 @@ def main() -> None:
         max_history_chars=settings.num_ctx * 2,
     )
 
-    print(f"JARVIS v0.1 ({settings.model}). Commands: /clear (forget chat), exit.\n")
+    speaker: Speaker | None = None  # created only when voice is switched on
+
+    print(
+        f"JARVIS v0.1 ({settings.model}). "
+        "Commands: /voice (speech on/off), /clear (forget chat), exit.\n"
+    )
     try:
         while True:
             try:
@@ -59,10 +68,36 @@ def main() -> None:
                 agent.reset()
                 print("jarvis> Conversation cleared. Your notes are untouched.\n")
                 continue
+            if user_text.lower() == "/voice":
+                if speaker is not None:
+                    speaker.unload()  # free the voice model's memory
+                    speaker = None
+                    print("jarvis> Voice off.\n")
+                else:
+                    try:
+                        model_path = ensure_voice(settings.voice, settings.data_dir / "voices")
+                        candidate = Speaker(model_path)
+                        candidate.speak("Voice enabled.")
+                        speaker = candidate
+                        print(f"jarvis> Voice on ({settings.voice}).\n")
+                    except TTSError as exc:
+                        print(f"[voice error] {exc}\n")
+                continue
+
             try:
-                print(f"jarvis> {agent.respond(user_text)}\n")
+                reply = agent.respond(user_text)
             except LLMError as exc:
                 print(f"[error] {exc}\n")
+                continue
+            print(f"jarvis> {reply}\n")
+
+            if speaker is not None:
+                try:
+                    speaker.speak(reply)
+                except TTSError as exc:
+                    print(f"[voice error] {exc}. Voice switched off.\n")
+                    speaker.unload()
+                    speaker = None
     finally:
         conn.close()
         print("\nGoodbye.")

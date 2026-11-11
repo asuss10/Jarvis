@@ -15,7 +15,9 @@ class Settings:
     ollama_host: str
     model: str
     num_ctx: int
+    keep_alive: str
     log_level: str
+    voice: str
     data_dir: Path
 
 
@@ -25,6 +27,8 @@ def load_settings() -> Settings:
         ollama_host=os.getenv("OLLAMA_HOST", "http://localhost:11434"),
         model=os.getenv("JARVIS_MODEL", "gpt-oss:20b"),
         num_ctx=int(os.getenv("JARVIS_NUM_CTX", "8192")),
+        keep_alive=os.getenv("JARVIS_KEEP_ALIVE", "2m"),
         log_level=os.getenv("JARVIS_LOG_LEVEL", "INFO").upper(),
+        voice=os.getenv("JARVIS_VOICE", "en_US-lessac-medium"),
         data_dir=PROJECT_ROOT / "data",
     )

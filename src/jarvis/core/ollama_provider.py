@@ -11,9 +11,16 @@ logger = logging.getLogger(__name__)
 
 
 class OllamaProvider:
-    def __init__(self, model: str, host: str, num_ctx: int) -> None:
+    def __init__(
+        self,
+        model: str,
+        host: str,
+        num_ctx: int,
+        keep_alive: str = "5m",
+    ) -> None:
         self._model = model
         self._num_ctx = num_ctx
+        self._keep_alive = keep_alive
         self._client = ollama.Client(host=host)
 
     def chat(
@@ -28,6 +35,7 @@ class OllamaProvider:
                 messages=messages,
                 tools=tools,
                 options={"num_ctx": self._num_ctx},
+                keep_alive=self._keep_alive,
             )
         except ConnectionError as exc:
             raise LLMError("Cannot reach Ollama. Is it running?") from exc
