@@ -15,3 +15,8 @@ data/*
 .DS_Store
 .vscode/
 .idea/
+
+
+*.egg-info/
+build/
+dist/
